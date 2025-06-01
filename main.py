@@ -55,8 +55,8 @@ async def process_message(message):
     metadata = []
 
     for transaction in transactions:
-        transaction_strings.append(plaid.transaction_to_string(transaction))
-        metadata.append(plaid.transaction_to_metadata(transaction))
+        transaction_strings.append(plaid.transaction_to_string(transaction=transaction))
+        metadata.append(plaid.transaction_to_metadata(transaction=transaction, user_id=user_id))
     
     try:
         qdrant.save_vector(texts=transaction_strings, metadatas=metadata)

@@ -88,7 +88,7 @@ class PlaidClient:
         return summary
     
 
-    def transaction_to_metadata(self, transaction: dict) -> dict:
+    def transaction_to_metadata(self, transaction: dict, user_id: str) -> dict:
         """
         Extract relevant metadata fields from a transaction dictionary
         for storing alongside vector embeddings.
@@ -121,6 +121,7 @@ class PlaidClient:
         currency = transaction.get("iso_currency_code") or transaction.get("currency") or ""
     
         metadata = {
+            "user_id": user_id,
             "transaction_id": transaction_id,
             "account_id": account_id,
             "user_id": user_id,
