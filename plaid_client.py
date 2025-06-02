@@ -6,7 +6,7 @@ from plaid.model.transactions_sync_request_options import TransactionsSyncReques
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from plaid.configuration import Configuration
 from plaid.api_client import ApiClient
-from datetime import date
+from datetime import date, datetime, timezone
 from config import PLAID_CLIENT_ID, PLAID_SECRET, get_logger
 import certifi
 
@@ -69,14 +69,14 @@ class PlaidClient:
         Example output:
         "Starbucks, $15.67 on 2025-05-30, category: Food and Drink > Coffee Shop, merchant: Seattle WA"
         """
-        name = transaction.get("name", "Unknown merchant")
         amount = transaction.get("amount", "Unknown amount")
         date = transaction.get("date", "unknown date")
+        name = transaction.get("name", "")
+        merchant_name = transaction.get("merchant_name", "an account")
 
         personal_finance_category = transaction.get("personal_finance_category", {})
         primary =  personal_finance_category.get("primary", "").replace("_", " ").lower()
         detailed =  personal_finance_category.get("detailed", "").replace("_", " ").lower()
-        category_str = f"{primary} {detailed}".strip() if primary or detailed else ""
 
         # Location info, fallback gracefully
         location = transaction.get("location", {})
@@ -85,9 +85,19 @@ class PlaidClient:
         location_str = f"{city} {state}".strip() if city or state else ""
 
         # Build summary string
-        parts = [f"{name}", f"${amount:.2f}", f"on {date}", f"category: {category_str}"]
+        parts = []
+            
+        if merchant_name:
+            parts.append(f"Payment of ${amount:.2f} made on {date} toward {merchant_name} named {name}.")
+        else:
+            parts.append(f"Payment of ${amount:.2f} made on {date} named {name}.")
+
+        if primary:
+            parts.append(f"Category: {primary}")
+        if detailed:
+            parts.append(f"Detailed Category: {detailed}")
         if location_str:
-            parts.append(f"merchant location: {location_str}")
+            parts.append(f"Transaction occurred in {location_str}")
 
         summary = ", ".join(parts)
         return summary
@@ -104,11 +114,15 @@ class PlaidClient:
         
         amount = transaction.get("amount", 0.0)
         date = transaction.get("date", "")
+        dt = datetime.combine(date, datetime.min.time(), tzinfo=timezone.utc)
+        # Convert to Unix timestamp (seconds since epoch)
+        unix_timestamp = int(dt.timestamp())
         
         personal_finance_category = transaction.get("personal_finance_category", {})
         primary_category =  personal_finance_category.get("primary", "")
     
-        merchant_name = transaction.get("name", "")
+        name = transaction.get("name", "")
+        merchant_name = transaction.get("merchant_name", "")
         currency = transaction.get("iso_currency_code") or transaction.get("currency") or ""
     
         metadata = {
@@ -116,9 +130,13 @@ class PlaidClient:
             "transaction_id": transaction_id,
             "account_id": account_id,
             "amount": amount,
-            "date": date,
+            "date": unix_timestamp,
             "category": primary_category,
-            "merchant_name": merchant_name,
+            "transaction_name": name,
             "currency": currency,
         }
+
+        if merchant_name:
+            metadata['merchant_name'] = merchant_name
+
         return metadata
