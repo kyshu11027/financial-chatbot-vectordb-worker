@@ -11,7 +11,7 @@ class KafkaClient:
         consumer_config = {
             **KAFKA_CONFIG,
             'session.timeout.ms': '45000',
-            'client.id': 'python-client-1',
+            'client.id': 'python-vectordb-client-1',
             'group.id': GROUP_ID,
             'auto.offset.reset': 'latest',
         }

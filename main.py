@@ -40,18 +40,31 @@ async def process_message(message):
     user_id = message_value['user_id']
     access_token = message_value['access_token']
     cursor = message_value.get('cursor', None) # Can be either string or None
+    logger.debug(f"user_id: {user_id} - access_token: {access_token} - cursor: {cursor}")
 
     transactions = []
     if cursor is None:
+        logger.debug("Running get transactions")
         today = datetime.today()
-        start_date = (today - timedelta(days=180)).strftime("%Y-%m-%d")
-        end_date = today.strftime("%Y-%m-%d")
-        transactions = plaid.get_transactions(access_token=access_token, start_date=start_date, end_date=end_date)
+        start_date = (today - timedelta(days=180)).date()
+        end_date = today.date()
+        try:
+            transactions = plaid.get_transactions(
+                access_token=access_token,
+                start_date=start_date,
+                end_date=end_date
+            )
 
+            # RUN TRANSACTIONS/SYNC AND STORE CURSOR IN POSTGRES
+        except Exception as e:
+            logger.error(f"Exception in get_transactions: {e}", exc_info=True)
+            transactions = []
     else:
-        transactions = plaid.sync_transactions(access_token=access_token, cursor=cursor)
-    
-    transaction_strings = []
+        logger.debug("Running get transactions")
+        transactions, removed, has_more, next_cursor = plaid.sync_transactions(access_token=access_token, cursor=cursor)
+        # STORE CURSOR IN POSTGRES
+        
+    transaction_strings = [] 
     metadata = []
 
     for transaction in transactions:

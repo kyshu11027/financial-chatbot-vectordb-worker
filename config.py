@@ -28,7 +28,7 @@ QDRANT_COLLECTION_NAME = "transactions"
 
 # Plaid Configuration
 PLAID_ENVIRONMENT = os.getenv('PLAID_ENVIRONMENT', '')
-PLAID_API_KEY = os.getenv('PLAID_API_KEY', '')
+PLAID_SECRET = os.getenv('PLAID_SECRET', '')
 PLAID_CLIENT_ID = os.getenv('PLAID_CLIENT_ID', '')
 
 
