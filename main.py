@@ -6,6 +6,7 @@ from config import get_logger
 from kafka_client import KafkaClient
 from plaid_client import PlaidClient
 from qdrant_service import QdrantClient
+from postgres_client import PostgresClient, SyncStatus
 from datetime import datetime, timedelta
 
 logger = get_logger(__name__)
@@ -14,6 +15,7 @@ logger = get_logger(__name__)
 kafka = KafkaClient()
 plaid = PlaidClient()
 qdrant = QdrantClient()
+postgres = PostgresClient()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +23,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(consume_messages())
     yield
     kafka.close()
+    postgres.close()
 
 app = FastAPI(
     title="Finance Chatbot API",
@@ -39,42 +42,54 @@ async def process_message(message):
     message_value = json.loads(message_decoded)
     user_id = message_value['user_id']
     access_token = message_value['access_token']
+    item_id = message_value['item_id']
     cursor = message_value.get('cursor', None) # Can be either string or None
-    logger.debug(f"user_id: {user_id} - access_token: {access_token} - cursor: {cursor}")
+    logger.debug(f"RECEIVED MESSAGE | user_id: {user_id} - access_token: {access_token} - item_id: {item_id} - cursor: {cursor}")
 
     transactions = []
-    if cursor is None:
-        logger.debug("Running get transactions")
-        today = datetime.today()
-        start_date = (today - timedelta(days=180)).date()
-        end_date = today.date()
-        try:
+    next_cursor = ""
+    
+    try:
+        if cursor is None:
+            logger.debug("Running get and sync transactions")
+            today = datetime.today()
+            start_date = (today - timedelta(days=730)).date() # Get all the transactions from the last 2 years
+            end_date = today.date()
+
             transactions = plaid.get_transactions(
                 access_token=access_token,
                 start_date=start_date,
                 end_date=end_date
             )
+            _, _, next_cursor = plaid.sync_transactions(access_token=access_token, cursor="now")
+            logger.debug(f"cursor: {next_cursor}")
+            
 
-            # RUN TRANSACTIONS/SYNC AND STORE CURSOR IN POSTGRES
-        except Exception as e:
-            logger.error(f"Exception in get_transactions: {e}", exc_info=True)
-            transactions = []
-    else:
-        logger.debug("Running get transactions")
-        transactions, removed, has_more, next_cursor = plaid.sync_transactions(access_token=access_token, cursor=cursor)
-        # STORE CURSOR IN POSTGRES
-        
-    transaction_strings = [] 
-    metadata = []
+        else:
+            logger.debug("Running sync  transactions")
 
-    for transaction in transactions:
-        transaction_strings.append(plaid.transaction_to_string(transaction=transaction))
-        metadata.append(plaid.transaction_to_metadata(transaction=transaction, user_id=user_id))
-    
-    try:
+            transactions, removed, next_cursor = plaid.sync_transactions(access_token=access_token, cursor=cursor)
+            
+            # Remove the deleted transaction IDs from Qdrant
+            removed_transaction_ids = [r['transaction_id'] for r in removed]
+            qdrant.delete_by_transaction_ids(removed_transaction_ids)
+        if not transactions:
+            logger.info("No transactions found to process.")
+            return
+
+        transaction_strings = [plaid.transaction_to_string(tx) for tx in transactions]
+        metadata = [plaid.transaction_to_metadata(tx, user_id=user_id) for tx in transactions]
+
         qdrant.save_vector(texts=transaction_strings, metadatas=metadata)
+
+        # Successfully processed plaid transactions
+        postgres.update_plaid_item(item_id=item_id, sync_status=SyncStatus.IDLE, cursor=next_cursor)
+        logger.info(f"Processed {len(transactions)} transactions for item_id {item_id}")
+
     except Exception as e:
-        logger.error(f"Error saving vectors to Qdrant: {e}")
+        logger.error(f"Error running job: {e}")
+        postgres.update_sync_status(item_id=item_id, sync_status=SyncStatus.FAILED)
+        return
 
 async def consume_messages():
     while True:

@@ -1,6 +1,7 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient as QdrantHttpClient
+from qdrant_client.models import Filter, FieldCondition, MatchAny
 from langchain_core.documents import Document
 from config import get_logger, OPENAI_MODEL_NAME, QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION_NAME
 
@@ -46,5 +47,27 @@ class QdrantClient:
             logger.info(f"Saved {len(documents)} documents to Qdrant.")
         except Exception as e:
             logger.error(f"Error saving vectors: {e}")
-            raise
+            raise e
+        
+    def delete_by_transaction_ids(self, transaction_ids: list[str]):
+        """
+        Delete all vectors where metadata.transaction_id is in the given list of transaction_ids.
+        """
+        try:
+            filter_ = Filter(
+                must=[
+                    FieldCondition(
+                        key="transaction_id",
+                        match=MatchAny(any=transaction_ids)
+                    )
+                ]
+            )
 
+            self.qdrant_client.delete(
+                collection_name=QDRANT_COLLECTION_NAME,
+                points_selector=filter_
+            )
+            logger.info(f"Deleted vectors with transaction_ids in list: {transaction_ids}")
+        except Exception as e:
+            logger.error(f"Error deleting vectors with transaction_ids {transaction_ids}: {e}")
+            raise

@@ -22,7 +22,7 @@ pip install -r requirements.txt
 To start the server, run:
 
 ```bash
-LOG_LEVEL=DEBUG gunicorn main:app --workers 3 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8090 --log-level error
+LOG_LEVEL=DEBUG gunicorn main:app --workers 3 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8090 --log-level error --timeout 120
 ```
 
 The server will start at `http://localhost:8090`
