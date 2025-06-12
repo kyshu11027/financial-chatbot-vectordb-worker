@@ -30,7 +30,7 @@ class QdrantClient:
             raise
 
 
-    def save_vector(self, texts: list[str], metadatas: list[dict]):
+    def save_vectors(self, texts: list[str], metadatas: list[dict]):
         """
         Save a batch of texts and metadata into Qdrant.
 
@@ -57,7 +57,7 @@ class QdrantClient:
             filter_ = Filter(
                 must=[
                     FieldCondition(
-                        key="transaction_id",
+                        key="metadata.transaction_id",
                         match=MatchAny(any=transaction_ids)
                     )
                 ]

@@ -8,6 +8,7 @@ from plaid_client import PlaidClient
 from qdrant_service import QdrantClient
 from postgres_client import PostgresClient, SyncStatus
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 
 logger = get_logger(__name__)
 
@@ -72,7 +73,8 @@ async def process_message(message):
             
             # Remove the deleted transaction IDs from Qdrant
             removed_transaction_ids = [r['transaction_id'] for r in removed]
-            qdrant.delete_by_transaction_ids(removed_transaction_ids)
+            if removed_transaction_ids:
+                qdrant.delete_by_transaction_ids(removed_transaction_ids)
         if not transactions:
             logger.info("No transactions found to process.")
             return
@@ -80,7 +82,7 @@ async def process_message(message):
         transaction_strings = [plaid.transaction_to_string(tx) for tx in transactions]
         metadata = [plaid.transaction_to_metadata(tx, user_id=user_id) for tx in transactions]
 
-        qdrant.save_vector(texts=transaction_strings, metadatas=metadata)
+        qdrant.save_vectors(texts=transaction_strings, metadatas=metadata)
 
         # Successfully processed plaid transactions
         postgres.update_plaid_item(item_id=item_id, sync_status=SyncStatus.IDLE, cursor=next_cursor)
