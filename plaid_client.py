@@ -55,7 +55,6 @@ class PlaidClient:
 
         
     def sync_transactions(self, access_token: str, cursor: str | None = None):
-        # CONVERT THIS TO A WHILE LOOP AND OUTPUT THE REMOVED AND NEW TRANSACTIONS
         """
         Sync transactions incrementally for a user starting from a cursor.
         If cursor is None, it will sync all available transactions initially.
