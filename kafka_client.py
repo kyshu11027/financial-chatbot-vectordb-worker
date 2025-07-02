@@ -1,4 +1,4 @@
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, KafkaException
 from config import get_logger, KAFKA_CONFIG, GROUP_ID, SAVE_TRANSACTIONS_TOPIC
 
 logger = get_logger(__name__)
@@ -28,12 +28,14 @@ class KafkaClient:
             if msg is None:
                 return None
             if msg.error():
-                logger.error(f"Consumer error: {msg.error()}")
-                return None
+                raise KafkaException(msg.Error())
             return msg
+        except KafkaException as e:
+            logger.error(f"Kafka error: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error in message consumption: {e}")
-            return None
+            logger.exception("Unexpected error in Kafka poll")
+            raise
 
     def close(self):
         if self.consumer:

@@ -107,6 +107,7 @@ async def consume_messages():
                 await asyncio.sleep(0.01)
         except Exception as e:
             logger.error(f"Error in message consumption: {e}")
-            await asyncio.sleep(1)  # Add delay to prevent tight loop on errors
+            kafka.setup_consumer()
+            await asyncio.sleep(2)  # Add delay to prevent tight loop on errors
 
 
