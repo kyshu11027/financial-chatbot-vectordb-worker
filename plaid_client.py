@@ -1,5 +1,4 @@
 import plaid
-import os
 from plaid.api import plaid_api
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_response import TransactionsGetResponse
@@ -9,14 +8,14 @@ from plaid.model.transactions_get_request_options import TransactionsGetRequestO
 from plaid.configuration import Configuration
 from plaid.api_client import ApiClient
 from datetime import date, datetime, timezone
-from config import PLAID_CLIENT_ID, PLAID_SECRET, get_logger
+from config import ENV, PLAID_CLIENT_ID, PLAID_SECRET, get_logger
 import certifi
 
 logger = get_logger(__name__)
 
 class PlaidClient:
     def __init__(self):
-        plaid_env = plaid.Environment.Production if os.getenv('ENV') == "production" else plaid.Environment.Sandbox
+        plaid_env = plaid.Environment.Production if ENV == "production" else plaid.Environment.Sandbox
         configuration = Configuration(
             host=plaid_env,
             api_key={

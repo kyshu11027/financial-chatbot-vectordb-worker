@@ -33,6 +33,7 @@ PLAID_CLIENT_ID = os.getenv('PLAID_CLIENT_ID', '')
 
 # Postgres Configuration
 POSTGRES_CONN_URI = os.getenv('SUPABASE_CONN_URI', '')
+ENV = os.getenv('ENV', '')
 
 def get_logger(name):
     """
