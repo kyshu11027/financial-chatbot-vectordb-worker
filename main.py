@@ -8,7 +8,6 @@ from plaid_client import PlaidClient
 from qdrant_service import QdrantClient
 from postgres_client import PostgresClient, SyncStatus
 from datetime import datetime, timedelta
-from pydantic import BaseModel
 
 logger = get_logger(__name__)
 

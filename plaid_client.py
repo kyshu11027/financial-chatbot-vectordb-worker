@@ -3,7 +3,6 @@ from plaid.api import plaid_api
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_response import TransactionsGetResponse
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
-from plaid.model.transactions_sync_request_options import TransactionsSyncRequestOptions
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from plaid.configuration import Configuration
 from plaid.api_client import ApiClient
