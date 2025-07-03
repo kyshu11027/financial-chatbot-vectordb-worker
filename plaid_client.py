@@ -1,4 +1,5 @@
 import plaid
+import os
 from plaid.api import plaid_api
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_response import TransactionsGetResponse
@@ -15,8 +16,9 @@ logger = get_logger(__name__)
 
 class PlaidClient:
     def __init__(self):
+        plaid_env = plaid.Environment.Production if os.getenv('ENV') == "production" else plaid.Environment.Sandbox
         configuration = Configuration(
-            host=plaid.Environment.Sandbox,
+            host=plaid_env,
             api_key={
                 "clientId": PLAID_CLIENT_ID,
                 "secret": PLAID_SECRET
