@@ -73,14 +73,13 @@ async def process_message(message):
             removed_transaction_ids = [r['transaction_id'] for r in removed]
             if removed_transaction_ids:
                 qdrant.delete_by_transaction_ids(removed_transaction_ids)
-        if not transactions:
+                
+        if transactions:
+            transaction_strings = [plaid.transaction_to_string(tx) for tx in transactions]
+            metadata = [plaid.transaction_to_metadata(tx, user_id=user_id) for tx in transactions]
+            qdrant.save_vectors(texts=transaction_strings, metadatas=metadata)
+        else:
             logger.info("No transactions found to process.")
-            return
-
-        transaction_strings = [plaid.transaction_to_string(tx) for tx in transactions]
-        metadata = [plaid.transaction_to_metadata(tx, user_id=user_id) for tx in transactions]
-
-        qdrant.save_vectors(texts=transaction_strings, metadatas=metadata)
 
         # Successfully processed plaid transactions
         postgres.update_plaid_item(item_id=item_id, sync_status=SyncStatus.IDLE, cursor=next_cursor)
