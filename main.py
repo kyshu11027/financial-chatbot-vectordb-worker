@@ -23,7 +23,6 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(consume_messages())
     yield
     kafka.close()
-    postgres.close()
 
 app = FastAPI(
     title="Finance Chatbot API",
